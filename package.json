@@ -1,0 +1,32 @@
+{
+  "name": "cre-api-docs-server",
+  "version": "1.0.0",
+  "description": "Serves Swagger UI for the CRE API",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node server.ts",
+    "serve": "node dist/server.js"
+  },
+  "keywords": [
+    "swagger-ui",
+    "openapi",
+    "express",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "js-yaml": "^4.1.0",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.14.0",
+    "@types/swagger-ui-express": "^4.1.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
