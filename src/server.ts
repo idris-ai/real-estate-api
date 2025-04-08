@@ -1,16 +1,43 @@
 import express = require('express');
 import cors = require('cors');
+import swaggerUi = require('swagger-ui-express');
+import fs = require('fs');
+import yaml = require('js-yaml');
+import path = require('path');
 
 // Use require for CommonJS imports
 const dataModule = require('./data');
 let { transactions, properties, parties, generateAllData, enrichTransaction, filterTransactions, sortTransactions } = dataModule;
 
 const app = express();
-const port = 3000; // API server port
+const port = 3001; // Changed port from 3000 to 3001
+
+// --- Load OpenAPI Spec ---
+let swaggerDocument: object | null = null;
+const specPath = path.resolve(process.cwd(), 'openapi.yaml');
+
+try {
+  console.log(`Attempting to load OpenAPI spec from: ${specPath}`);
+  const yamlSpec = fs.readFileSync(specPath, 'utf8');
+  swaggerDocument = yaml.load(yamlSpec) as object;
+  if (!swaggerDocument) {
+      throw new Error('Parsed Swagger document is null or undefined.');
+  }
+  console.log('OpenAPI specification loaded successfully.');
+} catch (e) {
+  console.error(`Failed to load or parse openapi.yaml from ${specPath}:`, e);
+  console.warn('Swagger UI will not be available.'); 
+}
 
 // --- Middleware ---
 app.use(cors()); // Enable CORS for all origins
 app.use(express.json()); // Middleware to parse JSON bodies
+
+// --- Setup Swagger UI Route ---
+if (swaggerDocument) {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
+}
 
 // --- Helper Functions ---
 const getPaginatedData = (data: any[], limit: number, offset: number) => {
@@ -155,7 +182,12 @@ app.post('/v1/reset-data', (req: express.Request, res: express.Response) => {
 
 // --- Basic Root Endpoint ---
 app.get('/', (req: express.Request, res: express.Response) => {
-    res.send('<h1>CRE Mock API Server</h1><p>Endpoints available at /v1/...</p><p>POST to /v1/reset-data to regenerate mock data.</p>');
+    res.send(`
+        <h1>CRE Mock API Server</h1>
+        <p>Mock API endpoints available at /v1/...</p>
+        <p>POST to /v1/reset-data to regenerate mock data.</p>
+        ${swaggerDocument ? '<p>Swagger UI available at <a href="/api-docs">/api-docs</a>.</p>' : '<p>(Swagger UI failed to load)</p>'}
+    `);
 });
 
 // --- Error Handling (Basic) ---
@@ -167,9 +199,12 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 // --- Start Server ---
 app.listen(port, () => {
     console.log(`CRE Mock API server running at http://localhost:${port}`);
-    console.log('Available endpoints:');
+    console.log('Available mock API endpoints:');
     console.log(`  GET http://localhost:${port}/v1/transactions`);
     console.log(`  GET http://localhost:${port}/v1/transactions/:transactionId`);
     console.log(`  GET http://localhost:${port}/v1/trends`);
     console.log(`  POST http://localhost:${port}/v1/reset-data`);
+    if (swaggerDocument) {
+        console.log(`Swagger UI documentation available at http://localhost:${port}/api-docs`);
+    }
 }); 
