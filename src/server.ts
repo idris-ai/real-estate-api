@@ -1,53 +1,50 @@
 import express = require('express');
 import cors = require('cors');
-import swaggerUi = require('swagger-ui-express');
+import path = require('path');
 import fs = require('fs');
 import yaml = require('js-yaml');
-import path = require('path');
 
 // Use require for CommonJS imports
 const dataModule = require('./data');
 let { transactions, properties, parties, generateAllData, enrichTransaction, filterTransactions, sortTransactions } = dataModule;
 
 const app = express();
-const port = 3001; // Changed port from 3000 to 3001
+const port = 3001; // API server port
 
 // --- Load OpenAPI Spec ---
 let swaggerDocument: object | null = null;
-let rawYamlSpec: string | null = null; // Store the raw YAML content
-const specPath = path.resolve(process.cwd(), 'openapi.yaml');
+let rawYamlSpec: string | null = null;
+let rawJsonSpec: string | null = null; // Variable for JSON content
+const yamlSpecPath = path.resolve(process.cwd(), 'openapi.yaml');
+const jsonSpecPath = path.resolve(process.cwd(), 'openapi.json'); // Path for JSON file
 
 try {
-  console.log(`Attempting to load OpenAPI spec from: ${specPath}`);
-  rawYamlSpec = fs.readFileSync(specPath, 'utf8'); // Read and store raw YAML
+  console.log(`Attempting to load OpenAPI YAML spec from: ${yamlSpecPath}`);
+  rawYamlSpec = fs.readFileSync(yamlSpecPath, 'utf8');
   swaggerDocument = yaml.load(rawYamlSpec) as object;
   if (!swaggerDocument) {
       throw new Error('Parsed Swagger document is null or undefined.');
   }
-  console.log('OpenAPI specification loaded successfully.');
+  console.log('OpenAPI YAML specification loaded successfully.');
+  
+  // Try loading the JSON file as well
+  try {
+      console.log(`Attempting to load OpenAPI JSON spec from: ${jsonSpecPath}`);
+      rawJsonSpec = fs.readFileSync(jsonSpecPath, 'utf8');
+      console.log('OpenAPI JSON specification loaded successfully.');
+  } catch (jsonError) {
+      console.error(`Failed to load openapi.json from ${jsonSpecPath}:`, jsonError);
+      console.warn('/openapi.json endpoint will not be available.');
+  }
+  
 } catch (e) {
-  console.error(`Failed to load or parse openapi.yaml from ${specPath}:`, e);
-  console.warn('Swagger UI and /openapi.yaml endpoint will not be available.');
+  console.error(`Failed to load or parse openapi.yaml from ${yamlSpecPath}:`, e);
+  console.warn('Swagger UI, /openapi.yaml, and /openapi.json endpoints will not be available.');
 }
 
 // --- Middleware ---
 app.use(cors()); // Enable CORS for all origins
 app.use(express.json()); // Middleware to parse JSON bodies
-
-// --- Setup Swagger UI Route ---
-if (swaggerDocument) {
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-    console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
-}
-
-// --- Add Route to Serve openapi.yaml ---
-if (rawYamlSpec) {
-    app.get('/openapi.yaml', (req: express.Request, res: express.Response) => {
-        res.setHeader('Content-Type', 'application/x-yaml;charset=utf-8');
-        res.send(rawYamlSpec);
-    });
-    console.log(`OpenAPI spec available at http://localhost:${port}/openapi.yaml`);
-}
 
 // --- Helper Functions ---
 const getPaginatedData = (data: any[], limit: number, offset: number) => {
@@ -189,6 +186,20 @@ app.post('/v1/reset-data', (req: express.Request, res: express.Response) => {
     }
 });
 
+// --- Setup Swagger UI Route ---
+// ... existing setup ...
+
+// --- Add Route to Serve openapi.yaml ---
+// ... existing setup ...
+
+// --- Add Route to Serve openapi.json ---
+if (rawJsonSpec) {
+    app.get('/openapi.json', (req: express.Request, res: express.Response) => {
+        res.setHeader('Content-Type', 'application/json;charset=utf-8');
+        res.send(rawJsonSpec);
+    });
+    console.log(`OpenAPI JSON spec available at http://localhost:${port}/openapi.json`);
+}
 
 // --- Basic Root Endpoint ---
 app.get('/', (req: express.Request, res: express.Response) => {
@@ -197,7 +208,8 @@ app.get('/', (req: express.Request, res: express.Response) => {
         <p>Mock API endpoints available at /v1/...</p>
         <p>POST to /v1/reset-data to regenerate mock data.</p>
         ${swaggerDocument ? '<p>Swagger UI available at <a href="/api-docs">/api-docs</a>.</p>' : '<p>(Swagger UI failed to load)</p>'}
-        ${rawYamlSpec ? '<p>Raw OpenAPI spec available at <a href="/openapi.yaml">/openapi.yaml</a>.</p>' : '<p>(OpenAPI spec file failed to load)</p>'}
+        ${rawYamlSpec ? '<p>Raw OpenAPI YAML spec available at <a href="/openapi.yaml">/openapi.yaml</a>.</p>' : '<p>(OpenAPI YAML spec file failed to load)</p>'}
+        ${rawJsonSpec ? '<p>Raw OpenAPI JSON spec available at <a href="/openapi.json">/openapi.json</a>.</p>' : '<p>(OpenAPI JSON spec file failed to load)</p>'}
     `);
 });
 
@@ -210,15 +222,12 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 // --- Start Server ---
 app.listen(port, () => {
     console.log(`CRE Mock API server running at http://localhost:${port}`);
-    console.log('Available mock API endpoints:');
+    console.log('Available endpoints:');
     console.log(`  GET http://localhost:${port}/v1/transactions`);
     console.log(`  GET http://localhost:${port}/v1/transactions/:transactionId`);
     console.log(`  GET http://localhost:${port}/v1/trends`);
     console.log(`  POST http://localhost:${port}/v1/reset-data`);
-    if (swaggerDocument) {
-        console.log(`Swagger UI documentation available at http://localhost:${port}/api-docs`);
-    }
-    if (rawYamlSpec) {
-        console.log(`Raw OpenAPI spec available at http://localhost:${port}/openapi.yaml`);
+    if (rawJsonSpec) {
+        console.log(`Raw OpenAPI JSON spec available at http://localhost:${port}/openapi.json`);
     }
 }); 

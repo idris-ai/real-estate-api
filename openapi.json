@@ -1,0 +1,1095 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Commercial Real Estate (CRE) Data API",
+    "description": "Provides comprehensive, structured access to a historical database of commercial real estate (CRE) transactions spanning from 1960 to 2025. This API facilitates detailed analysis, market research, and application development by exposing granular data points for various transaction types, including sales, leases, and specialized situations like mortgagee sales. It's designed to be consumed by data analysts, real estate professionals, financial institutions, and automated systems (like Hasura for GraphQL generation or LLMs for market analysis).\n",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:8080/v1",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Transactions",
+      "description": "Endpoints for querying individual and lists of CRE transactions. Allows detailed filtering based on property characteristics, transaction specifics, involved parties, location, and date ranges. Essential for retrieving raw data for specific analysis or display.\n"
+    },
+    {
+      "name": "Trends",
+      "description": "Endpoints for accessing aggregated market insights derived from the transaction data. Provides high-level views like total sales volume, average pricing metrics, and activity counts over specified time intervals and geographical areas. Useful for understanding market dynamics and identifying patterns without processing raw transaction lists.\n"
+    }
+  ],
+  "paths": {
+    "/transactions": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Retrieve a Filtered List of CRE Transactions",
+        "description": "Fetches a paginated list of commercial real estate transactions based on a wide array of potential filtering criteria. This endpoint is the primary way to access the raw transaction data. Supports filtering by date range (transactionDate), financial parameters (price), transaction characteristics (transactionType, buyerType), property details (location), and allows sorting and pagination for efficient data retrieval. Useful for applications needing to display lists of properties, perform detailed comparative analysis, or feed data into custom analytical models.\n",
+        "operationId": "listTransactions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/BuyerType"
+          },
+          {
+            "$ref": "#/components/parameters/TransactionType"
+          },
+          {
+            "$ref": "#/components/parameters/MinPrice"
+          },
+          {
+            "$ref": "#/components/parameters/MaxPrice"
+          },
+          {
+            "$ref": "#/components/parameters/Country"
+          },
+          {
+            "$ref": "#/components/parameters/State"
+          },
+          {
+            "$ref": "#/components/parameters/City"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/SortBy"
+          },
+          {
+            "$ref": "#/components/parameters/SortOrder"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved a paginated list of transactions matching the criteria. The response includes metadata about the result set (total count, pagination details) and the list of transaction objects.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedTransactionsResponse"
+                },
+                "example": {
+                  "metadata": {
+                    "totalRecords": 1530,
+                    "limit": 20,
+                    "offset": 0,
+                    "lastUpdated": "2024-07-27T10:30:00Z"
+                  },
+                  "data": [
+                    {
+                      "$ref": "#/components/examples/TransactionExample/value"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request could not be processed due to invalid or malformed query parameters. Check parameter formats (e.g., date format, numeric ranges) and allowed enum values.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "code": "INVALID_PARAMETER",
+                  "message": "Invalid date format for 'startDate'. Expected YYYY-MM-DD."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/{transactionId}": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Get Specific CRE Transaction Details",
+        "description": "Retrieves the complete details for a single commercial real estate transaction identified by its unique transactionId. This provides the most granular view of a specific deal, including all associated property, party, financial, and documentation information.\n",
+        "operationId": "getTransactionById",
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "description": "The universally unique identifier (UUID) representing the specific transaction to fetch.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed information about the specified transaction was successfully retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transaction"
+                },
+                "example": {
+                  "$ref": "#/components/examples/TransactionExample/value"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A transaction with the specified transactionId could not be found in the database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "Transaction with ID 'a1b2c3d4-e5f6-7890-1234-567890abcdef' not found."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trends": {
+      "get": {
+        "tags": [
+          "Trends"
+        ],
+        "summary": "Analyze Aggregated CRE Market Trends",
+        "description": "Provides aggregated insights and trends calculated from the transaction data over specified periods and geographical scopes. Allows users to understand market velocity (transaction count), pricing trends (average price per square foot, total volume), and buyer activity without needing to process individual transaction records. Filters allow focusing trends on specific transaction types, locations, and timeframes. Metrics returned can be customized.\n",
+        "operationId": "getTrends",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDate"
+          },
+          {
+            "$ref": "#/components/parameters/EndDate"
+          },
+          {
+            "$ref": "#/components/parameters/TransactionType"
+          },
+          {
+            "$ref": "#/components/parameters/Country"
+          },
+          {
+            "$ref": "#/components/parameters/State"
+          },
+          {
+            "$ref": "#/components/parameters/City"
+          },
+          {
+            "name": "aggregationInterval",
+            "in": "query",
+            "description": "Specifies the time granularity for aggregating trend data (e.g., 'year', 'quarter', 'month'). Determines how the time series data is bucketed.\n",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "year",
+                "quarter",
+                "month"
+              ],
+              "default": "year",
+              "example": "quarter"
+            }
+          },
+          {
+            "name": "metrics",
+            "in": "query",
+            "description": "A comma-separated list specifying which calculated metrics to include in the response. Allows clients to request only the trend data they need. See 'TrendData' schema for available metrics.\n",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "totalSalesVolume,averagePricePerSqft,transactionCount,buyerTypeDistribution",
+              "default": "totalSalesVolume,averagePricePerSqft,transactionCount"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved aggregated market trend data based on the specified filters and metrics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendsResponse"
+                },
+                "example": {
+                  "metadata": {
+                    "filters": {
+                      "startDate": "2023-01-01",
+                      "endDate": "2023-12-31",
+                      "country": "USA",
+                      "state": "CA",
+                      "aggregationInterval": "quarter",
+                      "metrics": "totalSalesVolume,averagePricePerSqft"
+                    },
+                    "lastUpdated": "2024-07-27T11:00:00Z"
+                  },
+                  "data": [
+                    {
+                      "interval": "2023-Q1",
+                      "totalSalesVolume": 120000000,
+                      "averagePricePerSqft": 430.5
+                    },
+                    {
+                      "interval": "2023-Q2",
+                      "totalSalesVolume": 150000000,
+                      "averagePricePerSqft": 445
+                    },
+                    {
+                      "interval": "2023-Q3",
+                      "totalSalesVolume": 135000000,
+                      "averagePricePerSqft": 455.25
+                    },
+                    {
+                      "interval": "2023-Q4",
+                      "totalSalesVolume": 145000000,
+                      "averagePricePerSqft": 470.1
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters. This could be due to incorrect date formats, unrecognized metric names, or invalid aggregation intervals.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "code": "INVALID_METRIC",
+                  "message": "Metric 'averageBuildingAge' is not supported."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Transaction": {
+        "type": "object",
+        "description": "Represents a single commercial real estate transaction record, capturing details about the deal itself, the property involved, the parties (buyer, seller, brokers), financing aspects, and associated documentation. This is the core data object returned by the API.\n",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Globally unique identifier (UUID) for this specific transaction record. Essential for referencing and retrieving individual transactions. Assigned upon record creation.\n",
+            "readOnly": true,
+            "example": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The official date the transaction was completed or recorded, in YYYY-MM-DD format. Crucial for time-series analysis and filtering.\n",
+            "example": "2024-05-15"
+          },
+          "transactionType": {
+            "$ref": "#/components/schemas/TransactionTypeEnum"
+          },
+          "price": {
+            "type": "number",
+            "format": "double",
+            "description": "The primary financial value associated with the transaction (e.g., sale price, total lease value). Expressed in the currency specified by the 'currency' field. Nullable if price is not applicable or unknown (e.g., certain lease types might focus on rate per sqft).\n",
+            "example": 12500000
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code for the 'price' field (e.g., 'USD', 'EUR', 'CAD'). Assumed 'USD' if omitted.\n",
+            "default": "USD",
+            "example": "USD"
+          },
+          "leaseTerms": {
+            "type": "string",
+            "description": "Free-text field containing key terms specific to lease or sublease transactions. May include details like lease duration (e.g., '10 years'), rental rate (e.g., '$55/sqft/year NNN'), escalation clauses, or renewal options. Null for non-lease transactions.\n",
+            "nullable": true,
+            "example": "5-year term, $40/sqft NNN, 3% annual escalations"
+          },
+          "mortgageeConditions": {
+            "type": "string",
+            "description": "Free-text field describing specific conditions associated with a mortgagee sale (foreclosure sale). Might include details about the auction process, 'as-is' condition, or court approval requirements. Null for other transaction types.\n",
+            "nullable": true,
+            "example": "Sold via public auction, subject to court confirmation."
+          },
+          "property": {
+            "description": "Details of the physical property involved in the transaction.",
+            "$ref": "#/components/schemas/Property"
+          },
+          "buyer": {
+            "description": "Information about the entity or individual acquiring the property or leasehold interest. Includes name and classification (e.g., Private Equity, REIT).\n",
+            "$ref": "#/components/schemas/Party"
+          },
+          "seller": {
+            "description": "Information about the entity or individual disposing of the property or leasehold interest. Includes name and classification.\n",
+            "$ref": "#/components/schemas/Party"
+          },
+          "brokers": {
+            "type": "array",
+            "description": "List of brokers or agents involved in facilitating the transaction. May include agents representing the buyer, seller, or both (dual agency).\n",
+            "items": {
+              "$ref": "#/components/schemas/Broker"
+            }
+          },
+          "financing": {
+            "description": "Details of the loan or financing arrangements associated with the transaction, if applicable and known. Provides insights into leverage and lending activity. Null if no financing details are available or relevant (e.g., all-cash deal, lease).\n",
+            "nullable": true,
+            "$ref": "#/components/schemas/Financing"
+          },
+          "documents": {
+            "type": "array",
+            "description": "A list of associated documents or external references related to the transaction or property. These are typically URLs pointing to PDFs, legal filings, listing pages, or property reports.\n",
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            }
+          },
+          "historicalPricing": {
+            "type": "array",
+            "description": "An array containing known historical price points or valuations for the property, providing context on its value trajectory. Can include previous sale prices, appraisals, or tax assessments.\n",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "The date associated with the historical price point (YYYY-MM-DD).",
+                  "example": "2015-03-10"
+                },
+                "price": {
+                  "type": "number",
+                  "format": "double",
+                  "description": "The historical price or valuation amount.",
+                  "example": 8000000
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Description of the source or nature of the historical price (e.g., 'Previous Sale', 'Appraisal', 'Tax Assessment').",
+                  "example": "Previous Sale"
+                }
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp indicating when this transaction record was first created in the database. System-generated and read-only.\n",
+            "readOnly": true,
+            "example": "2024-05-16T09:00:00Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp indicating when this transaction record was last modified in the database. System-generated and read-only.\n",
+            "readOnly": true,
+            "example": "2024-05-16T14:30:00Z"
+          }
+        },
+        "required": [
+          "transactionId",
+          "transactionDate",
+          "transactionType",
+          "property",
+          "buyer",
+          "seller"
+        ]
+      },
+      "Property": {
+        "type": "object",
+        "description": "Represents the physical commercial real estate property involved in a transaction. Includes address, physical characteristics, and classification.\n",
+        "properties": {
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional unique identifier for the property itself, distinct from the transaction ID. Useful if properties are tracked independently and can be involved in multiple transactions.\n",
+            "nullable": true,
+            "example": "p1a2b3c4-d5e6-f789-0123-456789abcdef"
+          },
+          "address": {
+            "description": "The structured postal address of the property.",
+            "$ref": "#/components/schemas/Address"
+          },
+          "propertyType": {
+            "$ref": "#/components/schemas/PropertyTypeEnum"
+          },
+          "squareFootage": {
+            "type": "number",
+            "format": "double",
+            "description": "Total leasable or gross area of the property, typically measured in square feet (or square meters, though unit should be consistent). Crucial metric for valuation (price/sqft) and comparison.\n",
+            "example": 50000
+          },
+          "zoning": {
+            "type": "string",
+            "description": "The local government's designated land use classification for the property (e.g., 'C-3 Commercial', 'I-2 Industrial', 'R-M Multifamily'). Dictates permissible uses and development potential.\n",
+            "example": "C-3 Commercial"
+          },
+          "yearBuilt": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The year the primary structure on the property was originally constructed.",
+            "nullable": true,
+            "example": 1995
+          },
+          "description": {
+            "type": "string",
+            "description": "A brief, free-text description of the property, potentially highlighting key features or its condition.\n",
+            "nullable": true,
+            "example": "Class A office building in downtown Metropolis, recently renovated lobby."
+          }
+        },
+        "required": [
+          "address",
+          "propertyType"
+        ]
+      },
+      "Address": {
+        "type": "object",
+        "description": "Structured representation of a physical address.",
+        "properties": {
+          "streetAddress": {
+            "type": "string",
+            "description": "Street name and number (e.g., '123 Main St', '4500 Corporate Blvd, Suite 200').",
+            "example": "123 Main St"
+          },
+          "city": {
+            "type": "string",
+            "description": "City or municipality name.",
+            "example": "Metropolis"
+          },
+          "state": {
+            "type": "string",
+            "description": "State, province, or administrative region (e.g., 'CA', 'NY', 'ON'). Use standard abbreviations where possible.",
+            "example": "NY"
+          },
+          "postalCode": {
+            "type": "string",
+            "description": "Postal or ZIP code.",
+            "example": "10001"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country name or code (e.g., 'USA', 'CAN'). ISO 3166-1 alpha-3 preferred if standardized.",
+            "example": "USA"
+          }
+        },
+        "required": [
+          "streetAddress",
+          "city",
+          "country"
+        ]
+      },
+      "Party": {
+        "type": "object",
+        "description": "Represents an entity involved in the transaction, such as a buyer or seller. Captures the name and a classification of the party type.\n",
+        "properties": {
+          "partyId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional unique identifier for the party, useful for tracking repeat players across transactions.",
+            "nullable": true,
+            "example": "b1a2b3c4-d5e6-f789-0123-456789bbcdef"
+          },
+          "name": {
+            "type": "string",
+            "description": "The legal or commonly known name of the party (individual, company, fund, etc.).\n",
+            "example": "Metropolis Holdings Inc."
+          },
+          "classification": {
+            "description": "The category describing the nature of the party, aiding in market analysis.",
+            "$ref": "#/components/schemas/BuyerTypeEnum"
+          }
+        },
+        "required": [
+          "name",
+          "classification"
+        ]
+      },
+      "Broker": {
+        "type": "object",
+        "description": "Represents a real estate broker or agent involved in the transaction.",
+        "properties": {
+          "brokerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional unique identifier for the broker, useful for tracking individual broker activity.",
+            "nullable": true,
+            "example": "br1a2b3c4-d5e6-f789-0123-456789abcdef"
+          },
+          "name": {
+            "type": "string",
+            "description": "Full name of the individual broker or agent.",
+            "example": "Alice Agent"
+          },
+          "agency": {
+            "type": "string",
+            "description": "The name of the brokerage firm the agent is affiliated with.",
+            "example": "CRE Solutions"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "buyer_agent",
+              "seller_agent",
+              "dual_agent",
+              "consultant",
+              "other"
+            ],
+            "description": "Specifies the role the broker played in this specific transaction (representing buyer, seller, both, or another capacity).\n",
+            "example": "seller_agent"
+          }
+        },
+        "required": [
+          "name",
+          "agency"
+        ]
+      },
+      "Financing": {
+        "type": "object",
+        "description": "Details related to the debt financing used in the transaction, if applicable. Provides insights into deal structure and credit market conditions.\n",
+        "properties": {
+          "loanAmount": {
+            "type": "number",
+            "format": "double",
+            "description": "The principal amount of the loan obtained for this transaction.",
+            "example": 9000000
+          },
+          "lender": {
+            "type": "string",
+            "description": "Name of the institution or entity providing the loan.",
+            "example": "Big Bank Corp"
+          },
+          "loanType": {
+            "type": "string",
+            "description": "Classification of the loan product (e.g., 'CMBS', 'Portfolio', 'Bridge', 'Construction', 'Mezzanine'). Indicates the nature and source of the debt.\n",
+            "example": "Portfolio"
+          },
+          "interestRate": {
+            "type": "number",
+            "format": "float",
+            "description": "The interest rate associated with the loan at origination, expressed as a percentage (e.g., 5.5 for 5.5%).",
+            "nullable": true,
+            "example": 5.5
+          },
+          "loanToValueRatio": {
+            "type": "number",
+            "format": "float",
+            "description": "The Loan-to-Value (LTV) ratio at the time of the transaction, calculated as (Loan Amount / Transaction Price). Expressed as a decimal (e.g., 0.72 for 72%). Key indicator of leverage.\n",
+            "nullable": true,
+            "example": 0.72
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "description": "Represents a link to an external document or resource related to the transaction or property.",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional unique identifier for the document reference.",
+            "nullable": true,
+            "example": "d1a2b3c4-d5e6-f789-0123-456789abcdef"
+          },
+          "url": {
+            "type": "string",
+            "format": "url",
+            "description": "The URL pointing directly to the document (e.g., PDF, image, web page).",
+            "example": "https://example.com/docs/deed_123main.pdf"
+          },
+          "description": {
+            "type": "string",
+            "description": "A brief, human-readable description of what the document contains or represents.",
+            "nullable": true,
+            "example": "Scanned copy of the recorded Property Deed"
+          },
+          "type": {
+            "type": "string",
+            "description": "Categorizes the type of document (e.g., 'Deed', 'Lease Agreement', 'Listing Flyer', 'Environmental Report', 'Appraisal'). Helps in organizing and filtering document links.\n",
+            "example": "Deed"
+          }
+        },
+        "required": [
+          "url",
+          "type"
+        ]
+      },
+      "TrendData": {
+        "type": "object",
+        "description": "Contains aggregated metrics calculated for a specific time interval (e.g., a year, quarter, or month) based on the filtering criteria provided to the /trends endpoint.\n",
+        "properties": {
+          "interval": {
+            "type": "string",
+            "description": "The specific time period this aggregation represents, matching the requested 'aggregationInterval' (e.g., '2023', '2023-Q1', '2023-07').\n",
+            "example": "2023-Q1"
+          },
+          "totalSalesVolume": {
+            "type": "number",
+            "format": "double",
+            "description": "The sum of transaction prices for all sales within this interval and matching the filters. Excludes leases unless specifically requested/calculated differently. Currency matches API default or query setting.\n",
+            "nullable": true,
+            "example": 120000000
+          },
+          "averagePricePerSqft": {
+            "type": "number",
+            "format": "double",
+            "description": "The average sale price per square foot, calculated from sales transactions within the interval that have both price and square footage data. A key indicator of market valuation.\n",
+            "nullable": true,
+            "example": 430.5
+          },
+          "transactionCount": {
+            "type": "integer",
+            "description": "The total number of transactions (of the types included by filters) that occurred within this interval. Measures market activity/velocity.\n",
+            "nullable": true,
+            "example": 35
+          },
+          "leaseRateAverage": {
+            "type": "number",
+            "format": "double",
+            "description": "Average rental rate per square foot per year (or other standard period), calculated from lease transactions within the interval. Units (e.g., $/sqft/yr) should be consistent or specified.\n",
+            "nullable": true,
+            "example": 42.75
+          },
+          "buyerTypeDistribution": {
+            "type": "object",
+            "description": "An object showing the count of transactions broken down by the 'classification' of the buyer. Keys are the buyer types (e.g., 'Private Equity'), values are the counts. Provides insight into who is driving market activity.\n",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "nullable": true,
+            "example": {
+              "PrivateEquity": 15,
+              "REIT": 8,
+              "PrivateBuyer": 12
+            }
+          }
+        },
+        "required": [
+          "interval"
+        ]
+      },
+      "PaginatedTransactionsResponse": {
+        "type": "object",
+        "description": "The standard response structure for endpoints returning a list of transactions that supports pagination.",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "Contains information about the result set and pagination state.",
+            "properties": {
+              "totalRecords": {
+                "type": "integer",
+                "description": "The total number of transaction records available that match the query criteria, ignoring pagination limits.",
+                "example": 1530
+              },
+              "limit": {
+                "type": "integer",
+                "description": "The maximum number of transaction records requested per page (`limit` query parameter).",
+                "example": 20
+              },
+              "offset": {
+                "type": "integer",
+                "description": "The starting position (zero-based index) of the returned records within the total result set (`offset` query parameter).",
+                "example": 0
+              },
+              "lastUpdated": {
+                "type": "string",
+                "format": "date-time",
+                "description": "An indicative timestamp (ISO 8601) representing the freshness of the data included in the response. This might be the timestamp of the latest transaction included or the last time the underlying data source was updated.\n",
+                "example": "2024-07-27T10:30:00Z"
+              }
+            },
+            "required": [
+              "totalRecords",
+              "limit",
+              "offset"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "description": "An array containing the actual Transaction objects for the current page.",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          }
+        },
+        "required": [
+          "metadata",
+          "data"
+        ]
+      },
+      "TrendsResponse": {
+        "type": "object",
+        "description": "The response structure for the /trends endpoint, containing metadata and the aggregated trend data points.",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "description": "Contains information about the filters used to generate the trends and data freshness.",
+            "properties": {
+              "filters": {
+                "type": "object",
+                "description": "An object reflecting the query parameters (filters like date range, location, transaction type) used to generate this trend analysis. Helps in understanding the context of the trend data.\n",
+                "additionalProperties": true,
+                "example": {
+                  "startDate": "2023-01-01",
+                  "endDate": "2023-12-31",
+                  "country": "USA",
+                  "state": "CA",
+                  "aggregationInterval": "quarter",
+                  "metrics": "totalSalesVolume,averagePricePerSqft"
+                }
+              },
+              "lastUpdated": {
+                "type": "string",
+                "format": "date-time",
+                "description": "An indicative timestamp (ISO 8601) representing the freshness of the data used for the trend calculation.\n",
+                "example": "2024-07-27T11:00:00Z"
+              }
+            },
+            "required": [
+              "filters"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "description": "An array containing the calculated TrendData objects, one for each aggregation interval.",
+            "items": {
+              "$ref": "#/components/schemas/TrendData"
+            }
+          }
+        },
+        "required": [
+          "metadata",
+          "data"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "description": "Standard structure for returning error information when an API request fails.",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "A machine-readable error code indicating the general category of the error (e.g., 'INVALID_PARAMETER', 'NOT_FOUND', 'SERVER_ERROR').\n",
+            "example": "INVALID_PARAMETER"
+          },
+          "message": {
+            "type": "string",
+            "description": "A human-readable message providing more specific details about the error that occurred.",
+            "example": "Invalid date format for 'startDate'. Expected YYYY-MM-DD."
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "TransactionTypeEnum": {
+        "type": "string",
+        "description": "Categorizes the nature of the commercial real estate transaction. - `lease`: Standard agreement granting use of property for a specified term and rent. - `sublease`: A lease agreement where the lessee rents the property to a third party. - `going_concern_sale`: Sale of a property that includes the ongoing business operations associated with it (e.g., a hotel sold with its brand and operations). - `mortgagee_sale`: Sale initiated by the lender (mortgagee) typically due to borrower default (foreclosure). - `standard_sale`: A typical arms-length transfer of property ownership title.\n",
+        "enum": [
+          "lease",
+          "sublease",
+          "going_concern_sale",
+          "mortgagee_sale",
+          "standard_sale"
+        ],
+        "example": "standard_sale"
+      },
+      "BuyerTypeEnum": {
+        "type": "string",
+        "description": "Classifies the type of entity acting as the buyer in the transaction. Helps in understanding market players. - `Private Equity`: Investment funds focused on acquiring assets/companies. - `Publicly Listed Company`: Companies whose shares trade on a public stock exchange. - `Private Buyer`: Individuals or privately held companies/partnerships. - `Venture Capital`: Funds typically investing in early-stage companies, less common for direct CRE buys but could acquire property-holding tech firms. - `REIT`: Real Estate Investment Trust (publicly traded or private). - `Government`: Federal, state, or local government entities. - `Institutional Investor`: Large organizations like pension funds, endowments, insurance companies. - `Other`: Any category not covered above.\n",
+        "enum": [
+          "Private Equity",
+          "Publicly Listed Company",
+          "Private Buyer",
+          "Venture Capital",
+          "REIT",
+          "Government",
+          "Institutional Investor",
+          "Other"
+        ],
+        "example": "Private Equity"
+      },
+      "PropertyTypeEnum": {
+        "type": "string",
+        "description": "Broad classification of the commercial property's primary use. - `Office`: Buildings primarily used for administrative and business purposes. - `Retail`: Properties used for selling goods or services directly to consumers (e.g., shopping centers, storefronts). - `Industrial`: Facilities for manufacturing, warehousing, distribution, logistics. - `Multifamily`: Residential properties with multiple dwelling units (e.g., apartment buildings), treated commercially. - `Land`: Undeveloped or raw land zoned for commercial/industrial use. - `Hospitality`: Properties providing lodging and related services (e.g., hotels, motels). - `Special Purpose`: Properties designed for a specific use (e.g., healthcare facility, self-storage, data center, theater). - `Mixed Use`: Properties combining multiple uses (e.g., retail on ground floor, offices/apartments above).\n",
+        "enum": [
+          "Office",
+          "Retail",
+          "Industrial",
+          "Multifamily",
+          "Land",
+          "Hospitality",
+          "Special Purpose",
+          "Mixed Use"
+        ],
+        "example": "Office"
+      }
+    },
+    "parameters": {
+      "StartDate": {
+        "name": "startDate",
+        "in": "query",
+        "description": "Filter results to include only transactions recorded *on or after* this date (inclusive). Format: YYYY-MM-DD. Essential for time-based analysis and limiting results to relevant periods. Minimum allowed value based on data coverage (1960-01-01).\n",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "example": "2022-01-01"
+        }
+      },
+      "EndDate": {
+        "name": "endDate",
+        "in": "query",
+        "description": "Filter results to include only transactions recorded *on or before* this date (inclusive). Format: YYYY-MM-DD. Use in conjunction with startDate for specific date ranges. Maximum allowed value based on data coverage (2025-12-31).\n",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "example": "2023-12-31"
+        }
+      },
+      "BuyerType": {
+        "name": "buyerType",
+        "in": "query",
+        "description": "Filter results based on the classification of the buyer (e.g., 'REIT', 'Private Equity'). Allows analysis of activity by different types of market participants. See `BuyerTypeEnum` for possible values.\n",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/BuyerTypeEnum"
+        }
+      },
+      "TransactionType": {
+        "name": "transactionType",
+        "in": "query",
+        "description": "Filter results based on the type of transaction (e.g., 'standard_sale', 'lease'). Useful for focusing analysis on specific deal types, like only sales or only leases. See `TransactionTypeEnum` for possible values.\n",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/TransactionTypeEnum"
+        }
+      },
+      "MinPrice": {
+        "name": "minPrice",
+        "in": "query",
+        "description": "Filter transactions where the 'price' is greater than or equal to this value. Useful for focusing on transactions above a certain threshold (e.g., institutional-grade deals). Assumes default currency unless specified otherwise.\n",
+        "required": false,
+        "schema": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0,
+          "example": 10000000
+        }
+      },
+      "MaxPrice": {
+        "name": "maxPrice",
+        "in": "query",
+        "description": "Filter transactions where the 'price' is less than or equal to this value. Use with minPrice to select a specific price bracket.\n",
+        "required": false,
+        "schema": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0,
+          "example": 50000000
+        }
+      },
+      "Country": {
+        "name": "country",
+        "in": "query",
+        "description": "Filter results by the country where the property is located. Use standard country codes (e.g., 'USA', 'CAN') or full names if supported. Essential for geographic scoping.\n",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "example": "USA"
+        }
+      },
+      "State": {
+        "name": "state",
+        "in": "query",
+        "description": "Filter results by the state, province, or major administrative region within a country (e.g., 'CA', 'ON', 'TX'). Requires 'country' to be meaningful in most cases.\n",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "example": "CA"
+        }
+      },
+      "City": {
+        "name": "city",
+        "in": "query",
+        "description": "Filter results by the city where the property is located. Provides the most granular standard geographic filtering.\n",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "example": "Los Angeles"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Controls the maximum number of transaction records to return in a single response page. Used for pagination. A sensible server-side maximum (e.g., 100) is usually enforced.\n",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "example": 50
+        }
+      },
+      "Offset": {
+        "name": "offset",
+        "in": "query",
+        "description": "Specifies the number of records to skip before starting to return results. Used in conjunction with 'limit' for pagination. An offset of 0 starts from the beginning.\n",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "example": 100
+        }
+      },
+      "SortBy": {
+        "name": "sortBy",
+        "in": "query",
+        "description": "Specifies the field by which the results should be sorted. Default is typically by transaction date. Allows ordering by key metrics like price or property size.\n",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "transactionDate",
+            "price",
+            "buyerType",
+            "propertyType",
+            "squareFootage",
+            "createdAt",
+            "updatedAt"
+          ],
+          "default": "transactionDate",
+          "example": "price"
+        }
+      },
+      "SortOrder": {
+        "name": "sortOrder",
+        "in": "query",
+        "description": "Determines the direction of the sorting specified by 'sortBy'. 'asc' for ascending (A-Z, oldest-newest, lowest-highest), 'desc' for descending (Z-A, newest-oldest, highest-lowest).\n",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "default": "desc",
+          "example": "asc"
+        }
+      }
+    },
+    "examples": {
+      "TransactionExample": {
+        "summary": "Example CRE Transaction (Standard Office Sale)",
+        "description": "A detailed example of a typical 'standard_sale' transaction involving an office property. Illustrates the structure and common fields populated for such a deal, including buyer/seller info, brokers, basic financing, and document links.\n",
+        "value": {
+          "transactionId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+          "transactionDate": "2024-05-15",
+          "transactionType": "standard_sale",
+          "price": 12500000,
+          "currency": "USD",
+          "leaseTerms": null,
+          "mortgageeConditions": null,
+          "property": {
+            "propertyId": "p1a2b3c4-d5e6-f789-0123-456789abcdef",
+            "address": {
+              "streetAddress": "123 Main St",
+              "city": "Metropolis",
+              "state": "NY",
+              "postalCode": "10001",
+              "country": "USA"
+            },
+            "propertyType": "Office",
+            "squareFootage": 50000,
+            "zoning": "C-3 Commercial",
+            "yearBuilt": 1995,
+            "description": "Class A office building in downtown Metropolis, recently renovated lobby."
+          },
+          "buyer": {
+            "partyId": "b1a2b3c4-d5e6-f789-0123-456789bbcdef",
+            "name": "Metropolis Holdings Inc.",
+            "classification": "Private Equity"
+          },
+          "seller": {
+            "partyId": "s1a2b3c4-d5e6-f789-0123-456789abcdef",
+            "name": "Downtown Properties LLC",
+            "classification": "Private Buyer"
+          },
+          "brokers": [
+            {
+              "brokerId": "br1a2b3c4-d5e6-f789-0123-456789abcdef",
+              "name": "Alice Agent",
+              "agency": "CRE Solutions",
+              "role": "seller_agent"
+            },
+            {
+              "brokerId": "br2a2b3c4-d5e6-f789-0123-456789bbcdef",
+              "name": "Bob Broker",
+              "agency": "Capital Realty",
+              "role": "buyer_agent"
+            }
+          ],
+          "financing": {
+            "loanAmount": 9000000,
+            "lender": "Big Bank Corp",
+            "loanType": "Portfolio",
+            "interestRate": 5.5,
+            "loanToValueRatio": 0.72
+          },
+          "documents": [
+            {
+              "documentId": "d1a2b3c4-d5e6-f789-0123-456789abcdef",
+              "url": "https://example.com/docs/deed_123main.pdf",
+              "description": "Recorded Property Deed",
+              "type": "Deed"
+            },
+            {
+              "documentId": "d2a2b3c4-d5e6-f789-0123-456789bbcdef",
+              "url": "https://example.com/listings/123main_flyer.pdf",
+              "description": "Original Sales Listing Flyer",
+              "type": "Listing Flyer"
+            }
+          ],
+          "historicalPricing": [
+            {
+              "date": "2015-03-10",
+              "price": 8000000,
+              "source": "Previous Sale"
+            },
+            {
+              "date": "2023-12-01",
+              "price": 11500000,
+              "source": "Tax Assessment"
+            }
+          ],
+          "createdAt": "2024-05-16T09:00:00Z",
+          "updatedAt": "2024-05-16T14:30:00Z"
+        }
+      }
+    }
+  }
+}
