@@ -14,19 +14,20 @@ const port = 3001; // Changed port from 3000 to 3001
 
 // --- Load OpenAPI Spec ---
 let swaggerDocument: object | null = null;
+let rawYamlSpec: string | null = null; // Store the raw YAML content
 const specPath = path.resolve(process.cwd(), 'openapi.yaml');
 
 try {
   console.log(`Attempting to load OpenAPI spec from: ${specPath}`);
-  const yamlSpec = fs.readFileSync(specPath, 'utf8');
-  swaggerDocument = yaml.load(yamlSpec) as object;
+  rawYamlSpec = fs.readFileSync(specPath, 'utf8'); // Read and store raw YAML
+  swaggerDocument = yaml.load(rawYamlSpec) as object;
   if (!swaggerDocument) {
       throw new Error('Parsed Swagger document is null or undefined.');
   }
   console.log('OpenAPI specification loaded successfully.');
 } catch (e) {
   console.error(`Failed to load or parse openapi.yaml from ${specPath}:`, e);
-  console.warn('Swagger UI will not be available.'); 
+  console.warn('Swagger UI and /openapi.yaml endpoint will not be available.');
 }
 
 // --- Middleware ---
@@ -37,6 +38,15 @@ app.use(express.json()); // Middleware to parse JSON bodies
 if (swaggerDocument) {
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
     console.log(`Swagger UI available at http://localhost:${port}/api-docs`);
+}
+
+// --- Add Route to Serve openapi.yaml ---
+if (rawYamlSpec) {
+    app.get('/openapi.yaml', (req: express.Request, res: express.Response) => {
+        res.setHeader('Content-Type', 'application/x-yaml;charset=utf-8');
+        res.send(rawYamlSpec);
+    });
+    console.log(`OpenAPI spec available at http://localhost:${port}/openapi.yaml`);
 }
 
 // --- Helper Functions ---
@@ -187,6 +197,7 @@ app.get('/', (req: express.Request, res: express.Response) => {
         <p>Mock API endpoints available at /v1/...</p>
         <p>POST to /v1/reset-data to regenerate mock data.</p>
         ${swaggerDocument ? '<p>Swagger UI available at <a href="/api-docs">/api-docs</a>.</p>' : '<p>(Swagger UI failed to load)</p>'}
+        ${rawYamlSpec ? '<p>Raw OpenAPI spec available at <a href="/openapi.yaml">/openapi.yaml</a>.</p>' : '<p>(OpenAPI spec file failed to load)</p>'}
     `);
 });
 
@@ -206,5 +217,8 @@ app.listen(port, () => {
     console.log(`  POST http://localhost:${port}/v1/reset-data`);
     if (swaggerDocument) {
         console.log(`Swagger UI documentation available at http://localhost:${port}/api-docs`);
+    }
+    if (rawYamlSpec) {
+        console.log(`Raw OpenAPI spec available at http://localhost:${port}/openapi.yaml`);
     }
 }); 
