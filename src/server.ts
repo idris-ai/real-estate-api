@@ -195,7 +195,8 @@ app.post('/v1/reset-data', (req: express.Request, res: express.Response) => {
 // --- Add Route to Serve openapi.json ---
 if (rawJsonSpec) {
     app.get('/openapi.json', (req: express.Request, res: express.Response) => {
-        res.setHeader('Content-Type', 'application/json;charset=utf-8');
+        // Set Content-Type to text/plain to display in browser
+        res.setHeader('Content-Type', 'text/plain;charset=utf-8'); 
         res.send(rawJsonSpec);
     });
     console.log(`OpenAPI JSON spec available at http://localhost:${port}/openapi.json`);
